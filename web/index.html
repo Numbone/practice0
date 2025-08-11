@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Order Lookup</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f3f4f6;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 900px;
+            margin: 40px auto;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .search-box {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .search-box input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+        }
+        .search-box button {
+            padding: 10px 15px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .search-box button:hover {
+            background: #1d4ed8;
+        }
+        .section {
+            margin-bottom: 20px;
+        }
+        .section h2 {
+            margin-bottom: 10px;
+            font-size: 1.2em;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 4px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        table td, table th {
+            border: 1px solid #ddd;
+            padding: 8px;
+        }
+        table th {
+            background: #f9fafb;
+            text-align: left;
+        }
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>🔍 Order Lookup</h1>
+    <div class="search-box">
+        <input type="text" id="orderId" placeholder="Enter Order UID">
+        <button id="searchBtn">Search</button>
+        <button id="getAllBtn">Get All Orders</button>
+    </div>
+    <div id="result"></div>
+</div>
+
+<script>
+    document.getElementById("searchBtn").addEventListener("click", fetchOrder);
+    document.getElementById("orderId").addEventListener("keypress", function(e) {
+        if (e.key === "Enter") fetchOrder();
+    });
+
+    function fetchOrder() {
+        const id = document.getElementById("orderId").value.trim();
+        if (!id) {
+            alert("Please enter an Order UID");
+            return;
+        }
+
+        fetch(`order/${id}`)
+            .then(r => {
+                if (!r.ok) throw new Error(`Order not found (status ${r.status})`);
+                return r.json();
+            })
+            .then(order => renderOrder(order))
+            .catch(err => {
+                document.getElementById("result").innerHTML = `<p class="error">❌ ${err.message}</p>`;
+            });
+    }
+
+    function renderOrder(order) {
+        let html = "";
+
+        // Основная информация
+        html += `<div class="section">
+        <h2>📦 Order Info</h2>
+        <table>
+            <tr><th>Order UID</th><td>${order.order_uid}</td></tr>
+            <tr><th>Track Number</th><td>${order.track_number}</td></tr>
+            <tr><th>Entry</th><td>${order.entry}</td></tr>
+            <tr><th>Locale</th><td>${order.locale}</td></tr>
+            <tr><th>Customer ID</th><td>${order.customer_id}</td></tr>
+            <tr><th>Delivery Service</th><td>${order.delivery_service}</td></tr>
+            <tr><th>Date Created</th><td>${order.date_created}</td></tr>
+        </table>
+    </div>`;
+
+        // Доставка
+        if (order.delivery) {
+            html += `<div class="section">
+            <h2>🚚 Delivery</h2>
+            <table>
+                <tr><th>Name</th><td>${order.delivery.name}</td></tr>
+                <tr><th>Phone</th><td>${order.delivery.phone}</td></tr>
+                <tr><th>Zip</th><td>${order.delivery.zip}</td></tr>
+                <tr><th>City</th><td>${order.delivery.city}</td></tr>
+                <tr><th>Address</th><td>${order.delivery.address}</td></tr>
+                <tr><th>Region</th><td>${order.delivery.region}</td></tr>
+                <tr><th>Email</th><td>${order.delivery.email}</td></tr>
+            </table>
+        </div>`;
+        }
+
+        // Оплата
+        if (order.payment) {
+            html += `<div class="section">
+            <h2>💳 Payment</h2>
+            <table>
+                <tr><th>Transaction</th><td>${order.payment.transaction}</td></tr>
+                <tr><th>Currency</th><td>${order.payment.currency}</td></tr>
+                <tr><th>Provider</th><td>${order.payment.provider}</td></tr>
+                <tr><th>Amount</th><td>${order.payment.amount}</td></tr>
+                <tr><th>Payment Date</th><td>${order.payment.payment_dt}</td></tr>
+                <tr><th>Bank</th><td>${order.payment.bank}</td></tr>
+                <tr><th>Delivery Cost</th><td>${order.payment.delivery_cost}</td></tr>
+                <tr><th>Goods Total</th><td>${order.payment.goods_total}</td></tr>
+                <tr><th>Custom Fee</th><td>${order.payment.custom_fee}</td></tr>
+            </table>
+        </div>`;
+        }
+
+        // Товары
+        if (order.items && order.items.length) {
+            html += `<div class="section">
+            <h2>🛒 Items</h2>
+            <table>
+                <tr>
+                    <th>Chrt ID</th><th>Name</th><th>Brand</th><th>Price</th><th>Total Price</th><th>Size</th><th>Status</th>
+                </tr>`;
+            order.items.forEach(item => {
+                html += `<tr>
+                <td>${item.chrt_id}</td>
+                <td>${item.name}</td>
+                <td>${item.brand}</td>
+                <td>${item.price}</td>
+                <td>${item.total_price}</td>
+                <td>${item.size}</td>
+                <td>${item.status}</td>
+            </tr>`;
+            });
+            html += `</table></div>`;
+        }
+
+        document.getElementById("result").innerHTML = html;
+    }
+
+    document.getElementById("getAllBtn").addEventListener("click", fetchAllOrders);
+
+    function fetchAllOrders() {
+        fetch('orders')
+            .then(r => {
+                if (!r.ok) throw new Error(`Failed to fetch orders (status ${r.status})`);
+                return r.json();
+            })
+            .then(orders => renderAllOrders(orders))
+            .catch(err => {
+                document.getElementById("result").innerHTML = `<p class="error">❌ ${err.message}</p>`;
+            });
+    }
+
+    function renderAllOrders(orders) {
+        if (!orders.length) {
+            document.getElementById("result").innerHTML = "<p>No orders found.</p>";
+            return;
+        }
+
+        let html = `<div class="section">
+        <h2>📋 All Orders (${orders.length})</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Order UID</th>
+                    <th>Track Number</th>
+                    <th>Customer ID</th>
+                    <th>Date Created</th>
+                </tr>
+            </thead>
+            <tbody>`;
+
+        orders.forEach(order => {
+            html += `<tr>
+            <td>${order.order_uid}</td>
+            <td>${order.track_number}</td>
+            <td>${order.customer_id}</td>
+            <td>${new Date(order.date_created).toLocaleString()}</td>
+        </tr>`;
+        });
+
+        html += `</tbody></table></div>`;
+
+        document.getElementById("result").innerHTML = html;
+    }
+
+</script>
+</body>
+</html>

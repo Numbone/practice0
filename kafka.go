@@ -9,7 +9,7 @@ import (
 	"github.com/segmentio/kafka-go"
 )
 
-func kafkaTest() {
+func KafkaTest() {
 	// Sample order data based on the provided model
 	order := map[string]interface{}{
 		"order_uid":    "b563feb7b2b84b6test",
