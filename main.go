@@ -22,7 +22,6 @@ func main() {
 	topic := "orders"
 	groupID := "order-consumers"
 
-	// Подключаемся к Postgres
 	connStr := os.Getenv("DB_URL")
 	dbConn, err := db.Connect(connStr)
 	if err != nil {
@@ -30,26 +29,20 @@ func main() {
 	}
 	defer dbConn.Pool.Close()
 
-	// Инициализация кэша
 	cacheLayer := cache.NewCache()
 
-	// Загружаем все заказы в кэш при старте
 	orders, _ := dbConn.LoadAllOrders()
 	for _, order := range orders {
 		cacheLayer.Set(order)
 	}
 
-	// Стартуем консьюмер Kafka в отдельной горутине
 	go kafka.StartConsumer(brokers, topic, groupID, dbConn, cacheLayer)
 
-	// Создаём продюсер Kafka
 	producer := kafka.NewProducer(brokers, topic)
 	defer producer.Close()
 
-	// Ждём подключения консьюмера
 	time.Sleep(2 * time.Second)
 
-	// Генерим тестовый заказ
 	testOrder := model.Order{
 		OrderUID:    "test-order-1",
 		TrackNumber: "WBILMTESTTRACK",
@@ -99,7 +92,6 @@ func main() {
 		OofShard:          "1",
 	}
 
-	// Отправляем тестовый заказ в Kafka
 	if err := producer.SendOrder(testOrder); err != nil {
 		log.Fatal("failed to send order:", err)
 	}
@@ -108,7 +100,7 @@ func main() {
 	time.Sleep(5 * time.Second)
 
 	http.HandleFunc("/orders", func(w http.ResponseWriter, r *http.Request) {
-		orders, err := dbConn.LoadAllOrders()
+		orders := cacheLayer.GetAll()
 		if err != nil {
 			log.Printf("failed to load orders: %v\n", err)
 			http.Error(w, "failed to load orders", http.StatusInternalServerError)
@@ -122,7 +114,6 @@ func main() {
 		}
 	})
 
-	// HTTP обработчик для получения заказа по ID
 	http.HandleFunc("/order/", func(w http.ResponseWriter, r *http.Request) {
 		orderID := strings.TrimPrefix(r.URL.Path, "/order/")
 		if orderID == "" {
@@ -130,27 +121,23 @@ func main() {
 			return
 		}
 
-		// Пытаемся достать из кэша
 		if order, ok := cacheLayer.Get(orderID); ok {
 			w.Header().Set("Content-Type", "application/json")
 			_ = json.NewEncoder(w).Encode(order)
 			return
 		}
 
-		// Если нет в кэше — достаём из БД
 		order, err := dbConn.GetOrder(orderID)
 		if err != nil {
 			http.Error(w, "order not found", http.StatusNotFound)
 			return
 		}
 
-		// Кладём в кэш и возвращаем
 		cacheLayer.Set(order)
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(order)
 	})
 
-	// Отдаём index.html и статику
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/" {
 			http.ServeFile(w, r, "web/index.html")

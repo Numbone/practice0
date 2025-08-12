@@ -9,8 +9,7 @@ import (
 	"github.com/segmentio/kafka-go"
 )
 
-func KafkaTest() {
-	// Sample order data based on the provided model
+func main() {
 	order := map[string]interface{}{
 		"order_uid":    "b563feb7b2b84b6test",
 		"track_number": "WBILMTESTTRACK",
@@ -61,20 +60,17 @@ func KafkaTest() {
 		"oof_shard":          "1",
 	}
 
-	// Create Kafka writer
 	writer := kafka.NewWriter(kafka.WriterConfig{
 		Brokers: []string{"localhost:9092"},
 		Topic:   "orders",
 	})
 	defer writer.Close()
 
-	// Convert to JSON
 	orderJSON, err := json.Marshal(order)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// Send message
 	err = writer.WriteMessages(context.Background(),
 		kafka.Message{
 			Key:   []byte(order["order_uid"].(string)),
@@ -87,7 +83,6 @@ func KafkaTest() {
 
 	log.Printf("Message sent successfully: %s", order["order_uid"])
 
-	// Send a few more test orders with different UIDs
 	testOrders := []string{
 		"order_001_test",
 		"order_002_test",

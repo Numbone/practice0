@@ -19,24 +19,23 @@ func NewProducer(brokers []string, topic string) *Producer {
 			Addr:         kafka.TCP(brokers...),
 			Topic:        topic,
 			Balancer:     &kafka.LeastBytes{},
-			RequiredAcks: kafka.RequireAll, // ждём подтверждения от всех реплик
+			RequiredAcks: kafka.RequireAll,
 		},
 	}
 }
 
 func (p *Producer) SendOrder(order model.Order) error {
-	// сериализация в JSON
+
 	data, err := json.Marshal(order)
 	if err != nil {
 		return err
 	}
 
-	// контекст с таймаутом
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	msg := kafka.Message{
-		Key:   []byte(order.OrderUID), // ключ для партиционирования
+		Key:   []byte(order.OrderUID),
 		Value: data,
 		Time:  time.Now(),
 	}

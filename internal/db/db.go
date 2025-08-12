@@ -31,7 +31,6 @@ func (db *DB) SaveOrder(order model.Order) error {
 	}
 	defer tx.Rollback(ctx)
 
-	// 1. orders
 	_, err = tx.Exec(ctx, `
         INSERT INTO orders (
             order_uid, track_number, entry, locale, internal_signature,
@@ -46,7 +45,6 @@ func (db *DB) SaveOrder(order model.Order) error {
 		return fmt.Errorf("insert orders: %w", err)
 	}
 
-	// 2. deliveries
 	_, err = tx.Exec(ctx, `
         INSERT INTO deliveries (
             order_uid, name, phone, zip, city, address, region, email
@@ -60,7 +58,6 @@ func (db *DB) SaveOrder(order model.Order) error {
 		return fmt.Errorf("insert deliveries: %w", err)
 	}
 
-	// 3. payments
 	_, err = tx.Exec(ctx, `
         INSERT INTO payments (
             order_uid, transaction, request_id, currency, provider, amount,
@@ -76,7 +73,6 @@ func (db *DB) SaveOrder(order model.Order) error {
 		return fmt.Errorf("insert payments: %w", err)
 	}
 
-	// 4. items
 	for _, item := range order.Items {
 		_, err = tx.Exec(ctx, `
             INSERT INTO items (
@@ -114,7 +110,6 @@ func (db *DB) GetOrder(id string) (model.Order, error) {
 func (db *DB) LoadAllOrders() ([]model.Order, error) {
 	ctx := context.Background()
 
-	// Сначала получаем все заказы из orders
 	rows, err := db.Pool.Query(ctx, `SELECT order_uid, track_number, entry, locale, internal_signature,
 		customer_id, delivery_service, shardkey, sm_id, date_created, oof_shard FROM orders`)
 	if err != nil {
@@ -133,14 +128,12 @@ func (db *DB) LoadAllOrders() ([]model.Order, error) {
 			continue
 		}
 
-		// Подгружаем Delivery
 		err = db.Pool.QueryRow(ctx, `SELECT name, phone, zip, city, address, region, email FROM deliveries WHERE order_uid=$1`, o.OrderUID).
 			Scan(&o.Delivery.Name, &o.Delivery.Phone, &o.Delivery.Zip, &o.Delivery.City, &o.Delivery.Address, &o.Delivery.Region, &o.Delivery.Email)
 		if err != nil {
 			log.Println("load delivery:", err)
 		}
 
-		// Подгружаем Payment
 		err = db.Pool.QueryRow(ctx, `SELECT transaction, request_id, currency, provider, amount,
 			payment_dt, bank, delivery_cost, goods_total, custom_fee FROM payments WHERE order_uid=$1`, o.OrderUID).
 			Scan(&o.Payment.Transaction, &o.Payment.RequestID, &o.Payment.Currency, &o.Payment.Provider, &o.Payment.Amount,
@@ -149,7 +142,6 @@ func (db *DB) LoadAllOrders() ([]model.Order, error) {
 			log.Println("load payment:", err)
 		}
 
-		// Подгружаем Items
 		itemRows, err := db.Pool.Query(ctx, `SELECT chrt_id, track_number, price, rid, name, sale, size, total_price, nm_id, brand, status FROM items WHERE order_uid=$1`, o.OrderUID)
 		if err != nil {
 			log.Println("load items:", err)
