@@ -11,7 +11,7 @@ import (
 
 func main() {
 	order := map[string]interface{}{
-		"order_uid":    "b563feb7b2b84b6test",
+		"order_uid":    "22223",
 		"track_number": "WBILMTESTTRACK",
 		"entry":        "WBIL",
 		"delivery": map[string]interface{}{

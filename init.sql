@@ -1,4 +1,4 @@
--- === Таблица заказов ===
+
 CREATE TABLE IF NOT EXISTS orders (
                                       order_uid TEXT PRIMARY KEY,
                                       track_number TEXT NOT NULL,
@@ -13,10 +13,10 @@ CREATE TABLE IF NOT EXISTS orders (
                                       oof_shard TEXT NOT NULL
 );
 
--- Индекс для быстрого поиска по трек-номеру
+
 CREATE INDEX IF NOT EXISTS idx_orders_track_number ON orders(track_number);
 
--- === Таблица доставки ===
+
 CREATE TABLE IF NOT EXISTS deliveries (
                                           order_uid TEXT PRIMARY KEY REFERENCES orders(order_uid) ON DELETE CASCADE,
     name TEXT NOT NULL,
@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS deliveries (
     email TEXT NOT NULL
     );
 
--- === Таблица оплаты ===
+
 CREATE TABLE IF NOT EXISTS payments (
                                         order_uid TEXT PRIMARY KEY REFERENCES orders(order_uid) ON DELETE CASCADE,
     transaction TEXT NOT NULL,
@@ -43,7 +43,7 @@ CREATE TABLE IF NOT EXISTS payments (
     custom_fee INT NOT NULL
     );
 
--- === Таблица товаров ===
+
 CREATE TABLE IF NOT EXISTS items (
                                      id SERIAL PRIMARY KEY,
                                      order_uid TEXT REFERENCES orders(order_uid) ON DELETE CASCADE,
@@ -60,10 +60,10 @@ CREATE TABLE IF NOT EXISTS items (
     status INT NOT NULL
     );
 
--- Индекс для быстрого поиска товаров по заказу
+
 CREATE INDEX IF NOT EXISTS idx_items_order_uid ON items(order_uid);
 
--- === Тестовые данные ===
+
 
 INSERT INTO orders (order_uid, track_number, entry, locale, internal_signature, customer_id, delivery_service, shardkey, sm_id, date_created, oof_shard)
 VALUES
