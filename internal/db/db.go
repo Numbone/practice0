@@ -97,12 +97,12 @@ func (db *DB) GetOrder(id string) (model.Order, error) {
 	err := db.Pool.QueryRow(context.Background(),
 		`SELECT data FROM orders_json WHERE order_uid=$1`, id).Scan(&data)
 	if err != nil {
-		return model.Order{}, nil
+		return model.Order{}, err
 	}
 
 	var order model.Order
 	if err := json.Unmarshal(data, &order); err != nil {
-		return model.Order{}, nil
+		return model.Order{}, err
 	}
 	return order, err
 }

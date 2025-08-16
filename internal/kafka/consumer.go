@@ -34,6 +34,11 @@ func StartConsumer(brokers []string, topic, groupID string, dbConn *db.DB, cache
 			continue
 		}
 
+		if err := order.Validate(); err != nil {
+			log.Println("Validation failed:", err)
+			continue
+		}
+
 		if err := dbConn.SaveOrder(order); err != nil {
 			log.Println("DB save error:", err)
 			continue
